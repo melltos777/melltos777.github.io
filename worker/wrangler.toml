@@ -1,0 +1,12 @@
+name = "quicklist-backend"
+main = "worker.js"
+compatibility_date = "2026-09-15"
+workers_dev = true
+
+[vars]
+FREE_DAILY_LIMIT = "5"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "quicklist-db"
+database_id = "ad7b7479-347a-4b3e-81be-95abab1f8b97"
