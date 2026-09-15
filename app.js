@@ -266,17 +266,13 @@
     const id = user?.id || 'demo';
 
     /*
-     * Замени YOUR_BOT_USERNAME на username твоего бота,
-     * например:
-     *
-     * quicklist_bot
+     * Username твоего Telegram-бота.
+     * Без символа @
      */
-
-    const botUsername =
-      const botUsername = 'quicklisttakebot';
+    const botUsername = 'quicklisttakebot';
 
     const link =
-      botUsername !== 'YOUR_BOT_USERNAME'
+      botUsername
         ? `https://t.me/${botUsername}?startapp=ref_${id}`
         : 'Подключи username бота';
 
@@ -346,12 +342,6 @@
         }
       );
 
-      /*
-       * Поддерживаем несколько вариантов ответа,
-       * чтобы фронтенд не ломался при небольшом отличии
-       * структуры JSON backend.
-       */
-
       const entitlement =
         data?.entitlement ||
         data?.result ||
@@ -360,7 +350,8 @@
       const active =
         entitlement?.active === true ||
         entitlement?.pro === true ||
-        entitlement?.status === 'active';
+        entitlement?.status === 'active' ||
+        entitlement?.plan === 'PRO';
 
       if (active) {
         activateLocalPro(
@@ -400,55 +391,80 @@
           DAILY_LIMIT - state.used
         );
 
-    els.freeCount.textContent =
-      remaining;
+    if (els.freeCount) {
+      els.freeCount.textContent = remaining;
+    }
 
-    els.historyCount.textContent =
-      state.history.length;
+    if (els.historyCount) {
+      els.historyCount.textContent =
+        state.history.length;
+    }
 
-    els.proStatus.textContent =
-      pro ? 'PRO' : 'FREE';
+    if (els.proStatus) {
+      els.proStatus.textContent =
+        pro ? 'PRO' : 'FREE';
+    }
 
-    els.profilePlan.textContent =
-      pro ? 'PRO' : 'FREE';
+    if (els.profilePlan) {
+      els.profilePlan.textContent =
+        pro ? 'PRO' : 'FREE';
+    }
 
-    els.profileUsed.textContent =
-      pro
-        ? `${state.used} / ∞`
-        : `${state.used} / ${DAILY_LIMIT}`;
+    if (els.profileUsed) {
+      els.profileUsed.textContent =
+        pro
+          ? `${state.used} / ∞`
+          : `${state.used} / ${DAILY_LIMIT}`;
+    }
 
-    els.profileSaved.textContent =
-      state.history.length;
+    if (els.profileSaved) {
+      els.profileSaved.textContent =
+        state.history.length;
+    }
 
-    els.profileRefs.textContent =
-      state.refs;
+    if (els.profileRefs) {
+      els.profileRefs.textContent =
+        state.refs;
+    }
 
     if (pro) {
-      els.hint.textContent =
-        'PRO активен — генерации без дневного лимита.';
+      if (els.hint) {
+        els.hint.textContent =
+          'PRO активен — генерации без дневного лимита.';
+      }
 
-      els.paymentHint.textContent =
-        state.proExpiresAt
-          ? `PRO активен до ${formatDate(state.proExpiresAt)}`
-          : 'PRO активен на 30 дней.';
+      if (els.paymentHint) {
+        els.paymentHint.textContent =
+          state.proExpiresAt
+            ? `PRO активен до ${formatDate(state.proExpiresAt)}`
+            : 'PRO активен на 30 дней.';
+      }
 
-      els.buyPro.textContent =
-        '✓ PRO активен';
+      if (els.buyPro) {
+        els.buyPro.textContent =
+          '✓ PRO активен';
 
-      els.buyPro.disabled = true;
-      els.buyPro.classList.add('active');
+        els.buyPro.disabled = true;
+        els.buyPro.classList.add('active');
+      }
     } else {
-      els.hint.textContent =
-        `Бесплатно: ${DAILY_LIMIT} генераций в сутки.`;
+      if (els.hint) {
+        els.hint.textContent =
+          `Бесплатно: ${DAILY_LIMIT} генераций в сутки.`;
+      }
 
-      els.paymentHint.textContent =
-        `PRO — ${PRODUCT.stars} ⭐ на ${PRODUCT.days} дней`;
+      if (els.paymentHint) {
+        els.paymentHint.textContent =
+          `PRO — ${PRODUCT.stars} ⭐ на ${PRODUCT.days} дней`;
+      }
 
-      els.buyPro.textContent =
-        `⭐ Подключить PRO · ${PRODUCT.stars}`;
+      if (els.buyPro) {
+        els.buyPro.textContent =
+          `⭐ Подключить PRO · ${PRODUCT.stars}`;
 
-      els.buyPro.disabled = false;
-      els.buyPro.classList.remove('active');
+        els.buyPro.disabled = false;
+        els.buyPro.classList.remove('active');
+      }
     }
 
     renderUser();
@@ -698,6 +714,10 @@
   }
 
   function renderHistory() {
+    if (!els.emptyHistory || !els.historyList) {
+      return;
+    }
+
     els.emptyHistory.style.display =
       state.history.length
         ? 'none'
@@ -875,6 +895,10 @@ ${result.tags}`,
       '⏳ Создаём счёт...';
 
     try {
+      console.log(
+        'QuickList: creating invoice...'
+      );
+
       const data =
         await backend(
           '/create-invoice',
@@ -887,6 +911,11 @@ ${result.tags}`,
           }
         );
 
+      console.log(
+        'QuickList invoice response:',
+        data
+      );
+
       const invoiceUrl =
         data?.url ||
         data?.invoice_url ||
@@ -898,10 +927,21 @@ ${result.tags}`,
         );
       }
 
-      if (!tg.openInvoice) {
-        window.open(
-          invoiceUrl,
-          '_blank'
+      console.log(
+        'QuickList: opening Telegram invoice'
+      );
+
+      if (
+        typeof tg.openInvoice !==
+        'function'
+      ) {
+        toast(
+          'Telegram не поддерживает оплату в этом окне'
+        );
+
+        console.log(
+          'Invoice URL:',
+          invoiceUrl
         );
 
         els.buyPro.disabled = false;
@@ -914,14 +954,12 @@ ${result.tags}`,
       tg.openInvoice(
         invoiceUrl,
         async status => {
-
           console.log(
             'Telegram payment status:',
             status
           );
 
           if (status === 'paid') {
-
             toast(
               '🎉 Оплата прошла!'
             );
@@ -930,22 +968,34 @@ ${result.tags}`,
               '⏳ Проверяем PRO...';
 
             /*
-             * Не доверяем только callback
-             * Telegram.
-             *
-             * Настоящее подтверждение
-             * идёт через backend + D1.
+             * Даём webhook время обработать
+             * successful_payment.
              */
-
             await new Promise(
               resolve =>
                 setTimeout(
                   resolve,
-                  1200
+                  1500
                 )
             );
 
             await syncEntitlement();
+
+            /*
+             * Если webhook ещё не успел,
+             * пробуем ещё раз.
+             */
+            if (!hasLocalPro()) {
+              await new Promise(
+                resolve =>
+                  setTimeout(
+                    resolve,
+                    2000
+                  )
+              );
+
+              await syncEntitlement();
+            }
 
             if (hasLocalPro()) {
               toast(
@@ -953,14 +1003,13 @@ ${result.tags}`,
               );
             } else {
               toast(
-                'Оплата получена. Подожди несколько секунд.'
+                'Оплата получена. PRO активируется через несколько секунд.'
               );
             }
 
           } else if (
             status === 'cancelled'
           ) {
-
             toast(
               'Оплата отменена'
             );
@@ -968,7 +1017,6 @@ ${result.tags}`,
           } else if (
             status === 'failed'
           ) {
-
             toast(
               'Не удалось провести оплату'
             );
@@ -976,7 +1024,6 @@ ${result.tags}`,
           } else if (
             status === 'pending'
           ) {
-
             toast(
               'Платёж ещё обрабатывается'
             );
@@ -987,23 +1034,18 @@ ${result.tags}`,
       );
 
     } catch (error) {
-
       console.error(
-        'Payment error:',
+        'QuickList payment error:',
         error
       );
 
       toast(
-        'Не удалось открыть оплату'
+        `Ошибка оплаты: ${error.message || 'неизвестная ошибка'}`
       );
 
-    } finally {
-
-      if (!hasLocalPro()) {
-        els.buyPro.disabled = false;
-        els.buyPro.textContent =
-          originalText;
-      }
+      els.buyPro.disabled = false;
+      els.buyPro.textContent =
+        originalText;
     }
   }
 
@@ -1020,64 +1062,64 @@ ${result.tags}`,
     );
   });
 
-  els.generate.addEventListener(
-    'click',
-    () => {
+  if (els.generate) {
+    els.generate.addEventListener(
+      'click',
+      () => {
+        if (!canGenerate()) {
+          toast(
+            'Лимит FREE исчерпан — подключи PRO'
+          );
 
-      if (!canGenerate()) {
-        toast(
-          'Лимит FREE исчерпан — подключи PRO'
-        );
+          switchTab('profile');
 
-        switchTab('profile');
+          return;
+        }
 
-        return;
+        const result =
+          generateContent();
+
+        if (!result) return;
+
+        if (!hasLocalPro()) {
+          state.used += 1;
+        }
+
+        addHistory(result);
+
+        renderResult(result);
+
+        persist();
       }
+    );
+  }
 
-      const result =
-        generateContent();
+  if (els.copyAll) {
+    els.copyAll.addEventListener(
+      'click',
+      () => {
+        if (!lastResult) return;
 
-      if (!result) return;
-
-      if (!hasLocalPro()) {
-        state.used += 1;
-      }
-
-      addHistory(result);
-
-      renderResult(result);
-
-      persist();
-    }
-  );
-
-  els.copyAll.addEventListener(
-    'click',
-    () => {
-
-      if (!lastResult) return;
-
-      copyText(
-        `${lastResult.title}
+        copyText(
+          `${lastResult.title}
 
 ${lastResult.description}
 
 ${lastResult.tags}`,
-        'Всё скопировано'
-      );
-    }
-  );
+          'Всё скопировано'
+        );
+      }
+    );
+  }
 
   document
     .querySelectorAll(
       '.mini-copy[data-target]'
     )
     .forEach(button => {
-
       button.addEventListener(
         'click',
         () => {
-
           const target =
             $(button.dataset.target);
 
@@ -1091,81 +1133,89 @@ ${lastResult.tags}`,
       );
     });
 
-  els.share.addEventListener(
-    'click',
-    () => {
+  if (els.share) {
+    els.share.addEventListener(
+      'click',
+      () => {
+        if (!lastResult) return;
 
-      if (!lastResult) return;
-
-      shareText(
-        `${lastResult.title}
+        shareText(
+          `${lastResult.title}
 
 ${lastResult.description}
 
 ${lastResult.tags}`
-      );
-    }
-  );
-
-  els.saveAgain.addEventListener(
-    'click',
-    () => {
-
-      if (!lastResult) return;
-
-      addHistory(lastResult);
-
-      toast(
-        'Сохранено в истории'
-      );
-    }
-  );
-
-  els.clearHistory.addEventListener(
-    'click',
-    () => {
-
-      state.history = [];
-
-      persist();
-
-      toast(
-        'История очищена'
-      );
-    }
-  );
-
-  els.profileBtn.addEventListener(
-    'click',
-    () => switchTab('profile')
-  );
-
-  els.buyPro.addEventListener(
-    'click',
-    buyPro
-  );
-
-  els.shareRef.addEventListener(
-    'click',
-    () => {
-
-      const link =
-        els.shareRef.dataset.link;
-
-      if (
-        link &&
-        !link.startsWith('Подключи')
-      ) {
-        shareText(
-          `🚀 Попробуй QuickList\n\n${link}`
-        );
-      } else {
-        toast(
-          'Сначала подключи username бота'
         );
       }
-    }
-  );
+    );
+  }
+
+  if (els.saveAgain) {
+    els.saveAgain.addEventListener(
+      'click',
+      () => {
+        if (!lastResult) return;
+
+        addHistory(lastResult);
+
+        toast(
+          'Сохранено в истории'
+        );
+      }
+    );
+  }
+
+  if (els.clearHistory) {
+    els.clearHistory.addEventListener(
+      'click',
+      () => {
+        state.history = [];
+
+        persist();
+
+        toast(
+          'История очищена'
+        );
+      }
+    );
+  }
+
+  if (els.profileBtn) {
+    els.profileBtn.addEventListener(
+      'click',
+      () => switchTab('profile')
+    );
+  }
+
+  if (els.buyPro) {
+    els.buyPro.addEventListener(
+      'click',
+      buyPro
+    );
+  }
+
+  if (els.shareRef) {
+    els.shareRef.addEventListener(
+      'click',
+      () => {
+        const link =
+          els.shareRef.dataset.link;
+
+        if (
+          link &&
+          !link.startsWith('Подключи')
+        ) {
+          shareText(
+            `🚀 Попробуй QuickList\n\n${link}`
+          );
+        } else {
+          toast(
+            'Сначала подключи username бота'
+          );
+        }
+      }
+    );
+  }
 
   // =========================================================
   // START
@@ -1174,10 +1224,9 @@ ${lastResult.tags}`
   updateUI();
 
   /*
-   * Синхронизируем PRO с D1 при каждом
-   * открытии Mini App.
+   * Синхронизируем PRO с D1
+   * при каждом открытии Mini App.
    */
-
   syncEntitlement();
 
 })();
