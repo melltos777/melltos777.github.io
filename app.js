@@ -273,7 +273,7 @@
      */
 
     const botUsername =
-      'YOUR_BOT_USERNAME';
+      const botUsername = 'quicklisttakebot';
 
     const link =
       botUsername !== 'YOUR_BOT_USERNAME'
